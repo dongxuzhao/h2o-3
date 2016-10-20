@@ -14,6 +14,12 @@
 #' @param training_frame Id of the training data frame (Not required, to allow initial validation of model parameters).
 #' @param validation_frame Id of the validation data frame.
 #' @param nfolds Number of folds for N-fold cross-validation (0 to disable or >= 2). Defaults to 0.
+#' @param balance_classes \code{Logical}. Balance training data class counts via over/under-sampling (for imbalanced data). Defaults to
+#'        False.
+#' @param max_after_balance_size Maximum relative size of the training data after balancing class counts (can be less than 1.0). Requires
+#'        balance_classes. Defaults to 5.0.
+#' @param class_sampling_factors Desired over/under-sampling ratios per class (in lexicographic order). If not specified, sampling factors will
+#'        be automatically computed to obtain class balance during training. Requires balance_classes.
 #' @param keep_cross_validation_predictions \code{Logical}. Whether to keep the predictions of the cross-validation models. Defaults to False.
 #' @param keep_cross_validation_fold_assignment \code{Logical}. Whether to keep the cross-validation fold assignment. Defaults to False.
 #' @param fold_assignment Cross-validation fold assignment scheme, if fold_column is not specified. The 'Stratified' option will
@@ -54,8 +60,7 @@
 #'        much) Defaults to 0.0.
 #' @param max_runtime_secs Maximum allowed runtime in seconds for model training. Use 0 to disable. Defaults to 0.0.
 #' @param ignore_const_cols \code{Logical}. Ignore constant columns. Defaults to True.
-#' @param shuffle_training_data \code{Logical}. Enable shuffling of training data (recommended if training data is replicated and
-#'        train_samples_per_iteration is close to #nodes x #rows, of if using balance_classes). Defaults to True.
+#' @param shuffle_training_data \code{Logical}. Enable global shuffling of training data. Defaults to True.
 #' @param mini_batch_size Mini-batch size (smaller leads to better fit, larger can speed up and generalize better). Defaults to 32.
 #' @param clip_gradient Clip gradients once their absolute value is larger than this value. Defaults to 10.0.
 #' @param network Network architecture. Must be one of: "auto", "user", "lenet", "alexnet", "vgg", "googlenet", "inception_bn",
@@ -87,6 +92,9 @@ h2o.deepwater <- function(x, y,
                           training_frame, 
                           validation_frame, 
                           nfolds  = 0, 
+                          balance_classes  = FALSE, 
+                          max_after_balance_size  = 5.0, 
+                          class_sampling_factors, 
                           keep_cross_validation_predictions  = FALSE, 
                           keep_cross_validation_fold_assignment  = FALSE, 
                           fold_assignment  = c("AUTO", "Random", "Modulo", "Stratified"), 
@@ -144,18 +152,18 @@ h2o.deepwater <- function(x, y,
   }
 
   # Required args: training_frame
-  if( missing(training_frame) ) stop("argument "training_frame" is missing, with no default")
+  if( missing(training_frame) ) stop("argument 'training_frame' is missing, with no default")
   # Training_frame and validation_frame may be a key or an H2OFrame object
   if (!is.H2OFrame(training_frame))
      tryCatch(training_frame <- h2o.getFrame(training_frame),
            error = function(err) {
-             stop("argument "training_frame" must be a valid H2OFrame or key")
+             stop("argument 'training_frame' must be a valid H2OFrame or key")
            })
   if (!is.null(validation_frame)) {
      if (!is.H2OFrame(validation_frame))
          tryCatch(validation_frame <- h2o.getFrame(validation_frame),
              error = function(err) {
-                 stop("argument "validation_frame" must be a valid H2OFrame or key")
+                 stop("argument 'validation_frame' must be a valid H2OFrame or key")
              })
   }
   # Parameter list to send to model builder
@@ -176,6 +184,12 @@ h2o.deepwater <- function(x, y,
     parms$validation_frame <- validation_frame
   if (!missing(nfolds))
     parms$nfolds <- nfolds
+  if (!missing(balance_classes))
+    parms$balance_classes <- balance_classes
+  if (!missing(max_after_balance_size))
+    parms$max_after_balance_size <- max_after_balance_size
+  if (!missing(class_sampling_factors))
+    parms$class_sampling_factors <- class_sampling_factors
   if (!missing(keep_cross_validation_predictions))
     parms$keep_cross_validation_predictions <- keep_cross_validation_predictions
   if (!missing(keep_cross_validation_fold_assignment))

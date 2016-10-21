@@ -11,6 +11,7 @@
 #' @param y The name of the response variable in the model.
 #' @param model_id Destination id for this model; auto-generated if not specified.
 #' @param checkpoint Model checkpoint to resume training with.
+#' @param autoencoder \code{Logical}. Auto-Encoder. Defaults to False.
 #' @param training_frame Id of the training data frame (Not required, to allow initial validation of model parameters).
 #' @param validation_frame Id of the validation data frame.
 #' @param nfolds Number of folds for N-fold cross-validation (0 to disable or >= 2). Defaults to 0.
@@ -89,6 +90,7 @@
 h2o.deepwater <- function(x, y, 
                           model_id, 
                           checkpoint, 
+                          autoencoder  = FALSE, 
                           training_frame, 
                           validation_frame, 
                           nfolds  = 0, 
@@ -180,6 +182,8 @@ h2o.deepwater <- function(x, y,
     parms$model_id <- model_id
   if (!missing(checkpoint))
     parms$checkpoint <- checkpoint
+  if (!missing(autoencoder))
+    parms$autoencoder <- autoencoder
   if (!missing(validation_frame))
     parms$validation_frame <- validation_frame
   if (!missing(nfolds))
